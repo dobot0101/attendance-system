@@ -1,15 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Attendance } from './attendance.entity';
-import { IsNull, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
+import { MoreThanOrEqual, Repository } from 'typeorm';
+import { Attendance } from './attendance.entity';
 
 @Injectable()
 export class AttendanceService {
-  constructor(@InjectRepository(Attendance) private readonly attendanceRepository: Repository<Attendance>) {
-  }
+  constructor(@InjectRepository(Attendance) private readonly attendanceRepository: Repository<Attendance>, @InjectRepository(User) private readonly userRepository: Repository<User>) { }
 
-  async checkIn(user: User): Promise<Attendance> {
+  async checkIn(userDto: User): Promise<Attendance> {
+    console.log('checkIn user: ', userDto);
+    const user = await this.userRepository.findOne({ where: { id: userDto.id } })
+    if (!user) {
+      throw new Error('사용자를 찾을 수 없습니다.');
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const latest = await this.attendanceRepository.findOne({
@@ -30,13 +35,13 @@ export class AttendanceService {
     return this.attendanceRepository.save(attendance);
   }
 
-  async checkOut(user: User): Promise<Attendance> {
+  async checkOut(userDto: User): Promise<Attendance> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const record = await this.attendanceRepository.findOne({
       where: {
-        user: { id: user.id },
+        user: { id: userDto.id },
         checkInAt: MoreThanOrEqual(today)
         // checkOutAt: IsNull()
       }, order: {
@@ -52,11 +57,11 @@ export class AttendanceService {
   }
 
 
-  async findMyRecords(user: User): Promise<Attendance[]> {
+  async findMyRecords(userDto: User): Promise<Attendance[]> {
     return this.attendanceRepository.find({
       where: {
         user: {
-          id: user.id
+          id: userDto.id
         }
       },
       order: {
