@@ -1,9 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { UserService } from './user/user.service';
+import * as bcrypt from 'bcrypt';
+import { UserRole } from './user/user.entity';
 
 @Module({
   imports: [
@@ -16,6 +19,7 @@ import { AuthModule } from './auth/auth.module';
       database: process.env.DATABASE_NAME || 'attendance',
       autoLoadEntities: true,
       synchronize: true,
+      logging: process.env.NODE_ENV !== 'production',
     }),
     UserModule,
     AuthModule
@@ -23,4 +27,20 @@ import { AuthModule } from './auth/auth.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  constructor(private userService: UserService) {}
+  async onModuleInit() {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@test.com';
+    const adminExists = await this.userService.findByEmail(adminEmail);
+    if(!adminExists){
+      const hashed = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin', 10);
+      await this.userService.create({
+        email: adminEmail,
+        name: 'Admin',
+        password: hashed,
+        role: UserRole.ADMIN
+      });
+      console.log('Admin user created');
+    }
+  }
+}
