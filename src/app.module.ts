@@ -7,9 +7,14 @@ import { AuthModule } from './auth/auth.module';
 import { UserService } from './user/user.service';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from './user/user.entity';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DATABASE_HOST || 'db',
@@ -22,25 +27,29 @@ import { UserRole } from './user/user.entity';
       logging: process.env.NODE_ENV !== 'production',
     }),
     UserModule,
-    AuthModule
+    AuthModule,
+    AttendanceModule
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule implements OnModuleInit {
-  constructor(private userService: UserService) {}
+  constructor(private readonly userService: UserService, private readonly configService: ConfigService) { }
   async onModuleInit() {
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@test.com';
+    const adminEmail = this.configService.get<string>('ADMIN_EMAIL')!
+    const adminPassword = this.configService.get<string>('ADMIN_PASSWORD')!
+    console.log(`Admin email: ${adminEmail}`);
+    console.log(`Admin password: ${adminPassword}`);
     const adminExists = await this.userService.findByEmail(adminEmail);
-    if(!adminExists){
-      const hashed = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin', 10);
+    if (!adminExists) {
+      const hashed = await bcrypt.hash(adminPassword || 'admin', 10);
       await this.userService.create({
         email: adminEmail,
-        name: 'Admin',
+        name: '관리자',
         password: hashed,
         role: UserRole.ADMIN
       });
-      console.log('Admin user created');
+      console.log(`✅ Admin (${adminEmail}) 계정이 생성되었습니다.`);
     }
   }
 }

@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Attendance } from "src/attendance/attendance.entity";
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 export enum UserRole {
   ADMIN = 'admin',
   EMPLOYEE = 'employee',
@@ -19,8 +20,8 @@ export class User {
 
   @Column()
   password: string;
-  
-  @Column({type:'enum', enum: UserRole, default: UserRole.EMPLOYEE})
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE })
   role: UserRole;
 
   @CreateDateColumn()
@@ -28,4 +29,7 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Attendance, attendance => attendance.user)
+  attendances: Attendance[];
 }
