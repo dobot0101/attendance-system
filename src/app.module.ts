@@ -36,10 +36,9 @@ import { AttendanceModule } from './attendance/attendance.module';
 export class AppModule implements OnModuleInit {
   constructor(private readonly userService: UserService, private readonly configService: ConfigService) { }
   async onModuleInit() {
+    // 관리자 계정 생성
     const adminEmail = this.configService.get<string>('ADMIN_EMAIL')!
     const adminPassword = this.configService.get<string>('ADMIN_PASSWORD')!
-    console.log(`Admin email: ${adminEmail}`);
-    console.log(`Admin password: ${adminPassword}`);
     const adminExists = await this.userService.findByEmail(adminEmail);
     if (!adminExists) {
       const hashed = await bcrypt.hash(adminPassword || 'admin', 10);
@@ -50,6 +49,22 @@ export class AppModule implements OnModuleInit {
         role: UserRole.ADMIN
       });
       console.log(`✅ Admin (${adminEmail}) 계정이 생성되었습니다.`);
+    }
+
+    // 테스트 유저 계정 생성
+    const email = this.configService.get<string>('TEST_USER_EMAIL')!
+    const password = this.configService.get<string>('TEST_USER_PASSWORD')!
+
+    const userExists = await this.userService.findByEmail(email);
+    if (!userExists) {
+      const hashed = await bcrypt.hash(password || 'test', 10);
+      await this.userService.create({
+        email,
+        name: '테스트 EMPLOYEE',
+        password: hashed,
+        role: UserRole.EMPLOYEE
+      });
+      console.log(`✅ 테스트 EMPLOYEE (${email}) 계정이 생성되었습니다.`);
     }
   }
 }

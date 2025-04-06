@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Attendance } from './attendance.entity';
-import { MoreThan, Repository } from 'typeorm';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 
 @Injectable()
@@ -30,11 +30,10 @@ export class AttendanceService {
   }
 
   async checkOut(user: User): Promise<Attendance> {
-    const today = new Date();
     const latest = await this.attendanceRepository.findOne({
       where: {
         user: { id: user.id },
-        checkIn: MoreThan(new Date(today.setHours(0, 0, 0, 0))),
+        checkOut: IsNull()
       }, order: {
         checkIn: 'DESC'
       }
