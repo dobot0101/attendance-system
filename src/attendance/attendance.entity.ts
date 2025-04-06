@@ -10,10 +10,10 @@ export class Attendance {
   user: User;
 
   @Column({ type: 'timestamp' })
-  checkIn: Date;
+  checkInAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  checkOut: Date;
+  checkOutAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Attendance } from './attendance.entity';
-import { IsNull, MoreThan, Repository } from 'typeorm';
+import { IsNull, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { User } from 'src/user/user.entity';
 
 @Injectable()
@@ -11,38 +11,44 @@ export class AttendanceService {
 
   async checkIn(user: User): Promise<Attendance> {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const latest = await this.attendanceRepository.findOne({
       where: {
         user: { id: user.id },
-        checkIn: MoreThan(new Date(today.setHours(0, 0, 0, 0))),
+        checkInAt: MoreThanOrEqual(today),
       }, order: {
-        checkIn: 'DESC'
+        checkInAt: 'DESC'
       }
     })
     if (latest) throw new Error('이미 출근 기록이 있습니다.');
 
     const attendance = this.attendanceRepository.create({
       user,
-      checkIn: new Date(),
+      checkInAt: new Date(),
     });
 
     return this.attendanceRepository.save(attendance);
   }
 
   async checkOut(user: User): Promise<Attendance> {
-    const latest = await this.attendanceRepository.findOne({
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const record = await this.attendanceRepository.findOne({
       where: {
         user: { id: user.id },
-        checkOut: IsNull()
+        checkInAt: MoreThanOrEqual(today)
+        // checkOutAt: IsNull()
       }, order: {
-        checkIn: 'DESC'
+        checkInAt: 'DESC'
       }
     });
 
-    if (!latest) throw new Error('출근 기록이 없습니다.');
+    if (!record) throw new Error('출근 기록이 없습니다.');
+    if (record.checkOutAt) throw new Error('이미 퇴근 처리 되었습니다.');
 
-    latest.checkOut = new Date();
-    return this.attendanceRepository.save(latest);
+    record.checkOutAt = new Date();
+    return this.attendanceRepository.save(record);
   }
 
 
@@ -54,7 +60,7 @@ export class AttendanceService {
         }
       },
       order: {
-        checkIn: 'DESC'
+        checkInAt: 'DESC'
       }
     });
   }
@@ -63,7 +69,7 @@ export class AttendanceService {
     return this.attendanceRepository.find({
       relations: ['user'],
       order: {
-        checkIn: 'DESC'
+        checkInAt: 'DESC'
       }
     })
   }
